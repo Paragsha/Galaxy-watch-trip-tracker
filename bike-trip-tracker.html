@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<title>Tirupati–Mysuru Ride</title>
+<style>
+  :root{
+    --bg:#000000;
+    --card:#141414;
+    --card2:#1c1c1c;
+    --text:#f5f5f5;
+    --sub:#a8a8a8;
+    --accent:#ff9f45;
+    --ride:#4da3ff;
+    --food:#ffb54d;
+    --rest:#b083ff;
+    --sight:#4ddc8f;
+    --temple:#ffd24d;
+    --warn:#ff5d5d;
+    --stroke:#2f2f2f;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; width:100%; height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,'Roboto',"Segoe UI",sans-serif;
+    overflow:hidden; user-select:none;
+  }
+  #app{
+    position:relative; width:100vw; height:100vh; max-width:480px; max-height:480px;
+    margin:0 auto; border-radius:50%; overflow:hidden; background:var(--bg);
+  }
+  #tabs{
+    position:absolute; top:7.5%; left:0; right:0; z-index:20;
+    display:flex; justify-content:center; gap:7px; pointer-events:none;
+  }
+  #tabs button{
+    pointer-events:auto;
+    background:rgba(255,255,255,0.07); border:none; color:var(--sub);
+    font-size:18px; width:38px; height:38px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, background .15s ease;
+  }
+  #tabs button.active{ background:var(--accent); color:#000; transform:scale(1.08); }
+  #tabs button:active{ transform:scale(.9); }
+
+  #scroller{
+    position:absolute; inset:0; overflow-y:auto; overflow-x:hidden;
+    padding:20% 16% 23% 16%;
+    scrollbar-width:none;
+  }
+  #scroller::-webkit-scrollbar{display:none;}
+
+  .page{ animation-duration:.28s; animation-timing-function:cubic-bezier(.2,.8,.3,1); animation-fill-mode:both; }
+  .page.from-right{ animation-name:slideInR; }
+  .page.from-left{ animation-name:slideInL; }
+  @keyframes slideInR{ from{ opacity:0; transform:translateX(26px);} to{opacity:1; transform:translateX(0);} }
+  @keyframes slideInL{ from{ opacity:0; transform:translateX(-26px);} to{opacity:1; transform:translateX(0);} }
+
+  .center-title{ text-align:center; margin-bottom:10px; }
+  .center-title .day-badge{
+    font-size:13px; color:var(--accent); letter-spacing:1px; text-transform:uppercase; font-weight:700;
+  }
+  .center-title h1{ font-size:20px; margin:3px 0 0; font-weight:800; line-height:1.25; }
+  .center-title .date{ font-size:13px; color:var(--sub); margin-top:3px; }
+  .stay-pill{
+    display:inline-block; margin-top:7px; font-size:12px; padding:4px 11px;
+    background:var(--card2); border-radius:20px; color:var(--sub);
+  }
+  .progress-chip{
+    text-align:center; font-size:12px; color:var(--sub); margin:2px 0 10px;
+  }
+  .progress-chip b{ color:var(--accent); }
+
+  .next-up{
+    display:flex; align-items:center; gap:8px; background:var(--card2);
+    border-radius:14px; padding:9px 12px; margin-bottom:12px; border:1px solid var(--stroke);
+  }
+  .next-up .nu-dot{ width:11px; height:11px; border-radius:50%; background:var(--accent); flex:0 0 auto; }
+  .next-up .nu-text{ font-size:13px; line-height:1.3; }
+  .next-up .nu-label{ font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.5px; }
+
+  .ring-wrap{ display:flex; flex-direction:column; align-items:center; margin:6px 0 16px; }
+  svg.ring{ width:112px; height:112px; }
+  .ring-label{ font-size:22px; font-weight:800; margin-top:-76px; }
+  .ring-sub{ font-size:11px; color:var(--sub); margin-top:30px; }
+
+  .item{
+    display:flex; gap:10px; padding:11px 5px; border-bottom:1px solid var(--stroke);
+    align-items:flex-start; border-radius:10px; transition:background .12s ease, transform .1s ease;
+  }
+  .item:active{ background:rgba(255,255,255,0.06); transform:scale(.985); }
+  .item:last-child{ border-bottom:none; }
+  .dot{
+    width:11px; height:11px; border-radius:50%; margin-top:6px; flex:0 0 auto;
+  }
+  .item-body{ flex:1; min-width:0; }
+  .item-time{ font-size:12px; color:var(--sub); font-weight:700; }
+  .item-label{ font-size:16px; font-weight:700; line-height:1.35; margin-top:1px; }
+  .item-note{ font-size:12.5px; color:var(--sub); margin-top:3px; line-height:1.4; }
+  .item.done .item-label{ color:var(--sub); text-decoration:line-through; }
+  .item.done .dot{ opacity:.35; }
+  .chk{
+    width:22px; height:22px; border-radius:50%; border:2px solid var(--sub);
+    flex:0 0 auto; margin-top:2px; display:flex; align-items:center; justify-content:center;
+    font-size:13px; color:transparent; transition:background .15s ease, border-color .15s ease, transform .15s ease;
+  }
+  .item.done .chk{ background:var(--sight); border-color:var(--sight); color:#000; transform:scale(1.05); }
+
+  .warn-box{
+    background:rgba(255,93,93,0.12); border:1px solid var(--warn); border-radius:12px;
+    padding:10px 12px; font-size:13px; margin:10px 0; color:#ffbcbc; line-height:1.45;
+  }
+  .section-h{ font-size:12.5px; color:var(--accent); text-transform:uppercase; letter-spacing:1px; margin:16px 0 7px; font-weight:700; }
+  .info-card{
+    background:var(--card); border-radius:12px; padding:11px 13px; margin-bottom:9px; font-size:13.5px; line-height:1.55;
+  }
+  .info-card b{ color:var(--text); }
+  table.budget{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.budget td{ padding:6px 3px; border-bottom:1px solid var(--stroke); }
+  table.budget td:last-child{ text-align:right; color:var(--accent); font-weight:700; white-space:nowrap; }
+
+  #dots{
+    position:absolute; bottom:5.5%; left:0; right:0; display:flex; justify-content:center; gap:6px; z-index:20;
+  }
+  #dots span{ width:6px; height:6px; border-radius:50%; background:var(--stroke); transition:all .2s ease; }
+  #dots span.on{ background:var(--accent); width:16px; border-radius:4px; }
+
+  .swipe-zone{ position:absolute; top:0; bottom:0; width:14%; z-index:15; }
+  #zoneL{ left:0; } #zoneR{ right:0; }
+
+  .reset-btn{
+    display:block; margin:18px auto 0; background:var(--card2); color:var(--sub);
+    border:none; font-size:12px; padding:8px 16px; border-radius:20px; transition:transform .1s ease;
+  }
+  .reset-btn:active{ transform:scale(.94); }
+
+  .offline-chip{
+    position:absolute; top:2px; left:0; right:0; text-align:center; font-size:9px; color:#000;
+    background:var(--accent); padding:2px; z-index:30; opacity:0; transition:opacity .3s ease; pointer-events:none;
+  }
+  .offline-chip.show{ opacity:.92; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="offline-chip" id="offlineChip">Offline mode — showing saved copy</div>
+  <div id="tabs">
+    <button data-tab="trip" class="active">🗓️</button>
+    <button data-tab="pack">🎒</button>
+    <button data-tab="budget">💰</button>
+    <button data-tab="backup">⚠️</button>
+  </div>
+  <div id="scroller"></div>
+  <div id="dots"></div>
+  <div class="swipe-zone" id="zoneL"></div>
+  <div class="swipe-zone" id="zoneR"></div>
+</div>
+
+<script>
+function vib(ms){ if(navigator.vibrate){ try{ navigator.vibrate(ms); }catch(e){} } }
+
+const days = [
+{ overview:true, badge:"Trip Overview", title:"Chennai → Tirupati → Mysuru", date:"16–22 Oct 2026", stay:null },
+{
+  badge:"Day 1 · Fri 16 Oct", title:"Chennai → Tirupati", date:"~150–170 km", stay:"Stay: Tirupati",
+  items:[
+    ["14:00","Depart Chennai","Don't leave later than 2:00–2:30 PM","ride"],
+    ["—","Route","Chennai → Tiruvallur → Tiruttani → Chittoor → Tirupati","ride"],
+    ["15:30","Tea / fuel break","",'ride'],
+    ["17:00","Chittoor side","",'ride'],
+    ["18:30–19:30","Reach Tirupati","",'ride'],
+    ["20:00","Hotel check-in","",'rest'],
+    ["20:30","Dinner","",'food'],
+    ["21:30","Prep for tomorrow","3 AM wake-up — keep clothes/tickets ready",'rest'],
+    ["22:00","Sleep","",'rest'],
+  ],
+  warn:"No sightseeing tonight. Just reach → eat → prepare → sleep."
+},
+{
+  badge:"Day 2 · Sat 17 Oct", title:"Tirupati Darshan", date:"Main pilgrimage day", stay:"Stay: Tirupati",
+  items:[
+    ["03:00","Wake up","",'rest'],
+    ["03:20","Leave hotel","",'ride'],
+    ["04:00","Queue / reporting","",'temple'],
+    ["Morning","Darshan / ticket process","Depends on your booking/quota",'temple'],
+    ["After","Breakfast","",'food'],
+    ["Late morning","Return to hotel","",'rest'],
+    ["12:00–16:00","SLEEP / REST","Important — don't skip this",'rest'],
+    ["Evening","Kapila Theertham","",'sight'],
+    ["Evening","Dinner → hotel → sleep","Keep it extremely easy",'food'],
+  ],
+  warn:"Avoid: Tirumala sightseeing marathon, long rides, late-night temple hopping."
+},
+{
+  badge:"Day 3 · Sun 18 Oct", title:"Tirupati Local Day", date:"Recovery + sightseeing", stay:"Stay: Tirupati",
+  items:[
+    ["07:00","Wake up","",'rest'],
+    ["07:30–08:30","Breakfast","Idli / Vada / Pongal / Dosa / filter coffee",'food'],
+    ["09:00","Kapila Theertham","45–60 min",'sight'],
+    ["10:30","Govindaraja Swamy Temple","",'temple'],
+    ["12:00","Lunch","Andhra veg meal",'food'],
+    ["13:00–15:30","Hotel rest","",'rest'],
+    ["16:00","Pick ONE","ISKCON Temple / Sri Padmavathi Ammavari Temple / local market + coffee + snacks",'sight'],
+    ["21:00","Back at hotel","",'rest'],
+    ["21:30–22:00","Pack luggage","Tomorrow is the longest ride day",'rest'],
+    ["22:00","Sleep","",'rest'],
+  ]
+},
+{
+  badge:"Day 4 · Mon 19 Oct", title:"Tirupati → Mysuru", date:"⚠️ Long ride: ~390–420 km", stay:"Stay: Mysuru",
+  items:[
+    ["05:30","Depart Tirupati","Not 7 AM",'ride'],
+    ["—","Route","Tirupati → Chittoor → Palamaner → Kolar → Bengaluru outskirts → Maddur → Mandya → Mysuru",'ride'],
+    ["07:00","Breakfast","Near Chittoor/Palamaner — idli/vada/dosa + coffee",'food'],
+    ["09:00","Chittoor / Palamaner","",'ride'],
+    ["11:00","Kolar","",'ride'],
+    ["12:30","Lunch","Bengaluru outskirts/Maddur — try Maddur Vada + coffee, don't overeat",'food'],
+    ["14:00","Bengaluru outskirts","Avoid entering central Bengaluru",'ride'],
+    ["15:30","Maddur","",'ride'],
+    ["17:00","Mandya","",'ride'],
+    ["18:30–19:30","Reach Mysuru","Hotel → shower → dinner → sleep. No sightseeing today",'rest'],
+  ],
+  warn:"Times are targets, not deadlines. Ride safely, not fast."
+},
+{
+  badge:"Day 5 · Tue 20 Oct", title:"Full Mysuru Day", date:"Sightseeing + Dasara city", stay:"Stay: Mysuru",
+  items:[
+    ["06:30","Wake up","",'rest'],
+    ["07:00","Breakfast","Mysore masala dosa / idli / vada / filter coffee",'food'],
+    ["08:00","Chamundi Hills","Go early — cooler, better views, less crowd",'sight'],
+    ["10:30","Mysore Palace","Give it 1.5–2 hrs, don't rush",'sight'],
+    ["13:00","Lunch","Traditional South Indian/Karnataka meal",'food'],
+    ["14:00–16:00","Hotel rest","",'rest'],
+    ["16:30","Dasara City","Palace area → Devaraja Market → Sayyaji Rao Rd → city centre",'sight'],
+    ["19:00–21:00","Palace Illumination","Top experience — park away, walk in",'sight'],
+  ]
+},
+{
+  badge:"Day 6 · Wed 21 Oct", title:"Vijayadashami · Jamboo Savari", date:"🐘 The main event", stay:"Stay: Mysuru",
+  items:[
+    ["06:30","Wake up","",'rest'],
+    ["07:00","Breakfast","",'food'],
+    ["08:00","Get to viewing spot","Go early, don't arrive last minute",'sight'],
+    ["—","Jamboo Savari","Decorated elephants, golden howdah, Chamundeshwari, tableaux, bands",'temple'],
+    ["Evening","Torchlight Parade","Bannimantap — if access works, else dinner→hotel→sleep",'sight'],
+  ],
+  warn:"🚨 LEAVE THE BIKE AT THE HOTEL. Don't try to ride/park near the Palace today."
+},
+{
+  badge:"Day 7 · Thu 22 Oct", title:"Mysuru → Chennai", date:"~440+ km", stay:"Return day",
+  items:[
+    ["05:00–05:30","Depart Mysuru","Not 8 AM",'ride'],
+    ["—","Route","Mysuru → Mandya → Maddur → Bengaluru outskirts → Hosur → Krishnagiri → Vellore → Chennai",'ride'],
+    ["07:30","Breakfast","",'food'],
+    ["10:00","Bengaluru / Hosur","",'ride'],
+    ["12:30","Lunch","",'food'],
+    ["15:00","Vellore","",'ride'],
+    ["17:30–19:00","Reach Chennai","",'ride'],
+  ],
+  warn:"If exhausted, break the return: overnight at Bengaluru/Hosur, finish next morning."
+},
+];
+
+const packContent = `
+<div class="center-title"><span class="day-badge">Prep</span><h1>Packing &amp; Bike Check</h1></div>
+<div class="section-h">Bike check (2–3 days before)</div>
+<div class="info-card">Engine oil · Brake pads · Tyres &amp; pressure · Chain + lube · Coolant · Battery · Lights, horn, indicators · Puncture kit · Tubeless repair kit · Portable inflator</div>
+<div class="section-h">Carry with you</div>
+<div class="info-card">Rain jacket · Riding gloves · Waterproof luggage cover · Power bank · Phone mount + cable · Basic tools · First-aid basics · RC, Licence, Insurance</div>
+<div class="section-h">Food to try — Tirupati</div>
+<div class="info-card">Pongal · Dosa · Andhra meals · Filter coffee · Tirupati laddu</div>
+<div class="section-h">Food to try — Mysuru</div>
+<div class="info-card">Mysore masala dosa · Maddur vada · Mysore Pak · Bisibele bath · Filter coffee · Ragi mudde</div>
+`;
+
+const budgetContent = `
+<div class="center-title"><span class="day-badge">Budget</span><h1>7 Days · 1 Bike</h1></div>
+<table class="budget">
+<tr><td>Petrol</td><td>₹3,500–4,500</td></tr>
+<tr><td>Hotels (6 nights)</td><td>₹7,500–12,000</td></tr>
+<tr><td>Food</td><td>₹4,000–6,000</td></tr>
+<tr><td>Darshan / temple</td><td>₹300–1,500</td></tr>
+<tr><td>Mysuru attractions</td><td>₹500–1,500</td></tr>
+<tr><td>Dasara paid access</td><td>₹0–2,000+</td></tr>
+<tr><td>Parking / tolls / misc</td><td>₹1,000–1,500</td></tr>
+<tr><td>Emergency buffer</td><td>₹2,000</td></tr>
+<tr><td><b>Total</b></td><td><b>₹18,800–31,000</b></td></tr>
+</table>
+<div class="section-h">Target</div>
+<div class="info-card">Solo: keep ~<b>₹25,000</b> available.<br>Two people sharing bike + room: ₹28,000–38,000.</div>
+<div class="section-h">Hotel priorities</div>
+<div class="info-card"><b>Tirupati (3 nights):</b> clean room, bike parking, easy Tirumala access, 24h reception, flexible cancellation.<br><br><b>Mysuru (3 nights):</b> secure parking &gt; cleanliness &gt; road access &gt; Palace proximity. During Dasara, 1–2 km farther can be easier.</div>
+`;
+
+const backupContent = `
+<div class="center-title"><span class="day-badge">Plan B</span><h1>Backup Plans</h1></div>
+<div class="info-card"><b>17th darshan runs long?</b><br>No problem — 18th is already a buffer day.</div>
+<div class="info-card"><b>Exhausted on 18th?</b><br>Skip all sightseeing. Eat → sleep. Stay fresh for the 19th.</div>
+<div class="info-card"><b>Tirupati→Mysuru delayed?</b><br>Don't force it. Overnight at Kolar / Bengaluru outskirts / Mandya, continue next morning.</div>
+<div class="info-card"><b>Rain on the 19th?</b><br>Stop safely. Don't push through heavy rain to hit Mysuru by 7 PM.</div>
+<div class="info-card"><b>Mysuru overcrowded on 21st?</b><br>Bike stays at hotel. Walk / public transport.</div>
+<div class="info-card"><b>Exhausted on 22nd?</b><br>Break the return at Bengaluru/Hosur overnight, finish to Chennai next morning.</div>
+`;
+
+let mode = 'trip';
+let idx = 0;
+const scroller = document.getElementById('scroller');
+const dotsEl = document.getElementById('dots');
+const STORE_KEY = 'ride_trip_progress_v1';
+let progress = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
+
+function saveProgress(){ localStorage.setItem(STORE_KEY, JSON.stringify(progress)); }
+
+function totalStats(){
+  let total=0, done=0;
+  days.forEach((d,di)=>{
+    if(!d.items) return;
+    d.items.forEach((it,ii)=>{ total++; if(progress[di+'_'+ii]) done++; });
+  });
+  return {total,done};
+}
+function dayStats(di){
+  const d = days[di]; if(!d.items) return null;
+  let done=0; d.items.forEach((it,ii)=>{ if(progress[di+'_'+ii]) done++; });
+  return {total:d.items.length, done};
+}
+function nextUpItem(di){
+  const d = days[di]; if(!d.items) return null;
+  for(let ii=0; ii<d.items.length; ii++){
+    if(!progress[di+'_'+ii]) return {time:d.items[ii][0], label:d.items[ii][1]};
+  }
+  return null;
+}
+
+function ringSVG(pct){
+  const r=46, c=2*Math.PI*r, off = c - (pct/100)*c;
+  return `<div class="ring-wrap"><svg class="ring" viewBox="0 0 112 112">
+    <circle cx="56" cy="56" r="${r}" stroke="#2a2a2a" stroke-width="9" fill="none"/>
+    <circle cx="56" cy="56" r="${r}" stroke="var(--accent)" stroke-width="9" fill="none"
+      stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${off}"
+      transform="rotate(-90 56 56)" style="transition:stroke-dashoffset .4s ease"/>
+  </svg><div class="ring-label">${pct}%</div><div class="ring-sub">completed</div></div>`;
+}
+
+function renderTripDay(di, dir){
+  const d = days[di];
+  let inner = '';
+  if(d.overview){
+    const {total,done} = totalStats();
+    const pct = total? Math.round(done/total*100):0;
+    inner += `<div class="center-title"><span class="day-badge">${d.badge}</span><h1>${d.title}</h1><div class="date">${d.date}</div></div>`;
+    inner += ringSVG(pct);
+    inner += `<div class="section-h">Route</div><div class="info-card">Chennai → Tirupati (darshan) → local day → Mysuru (Dasara + Jamboo Savari) → Chennai</div>`;
+    inner += `<div class="section-h">Tip</div><div class="info-card">Swipe left/right (or tap the edges) to move between days. Tap 🎒 💰 ⚠️ up top for packing, budget &amp; backup plans. Tap any step to check it off.</div>`;
+    inner += `<button class="reset-btn" onclick="resetProgress()">Reset all progress</button>`;
+  } else {
+    const ds = dayStats(di);
+    const nu = nextUpItem(di);
+    inner += `<div class="center-title"><span class="day-badge">${d.badge}</span><h1>${d.title}</h1><div class="date">${d.date}</div>${d.stay?`<div class="stay-pill">${d.stay}</div>`:''}</div>`;
+    if(ds) inner += `<div class="progress-chip"><b>${ds.done}/${ds.total}</b> steps done</div>`;
+    if(nu){
+      inner += `<div class="next-up"><div class="nu-dot"></div><div class="nu-text"><div class="nu-label">Next up · ${nu.time}</div>${nu.label}</div></div>`;
+    }
+    d.items.forEach((it,ii)=>{
+      const [time,label,note,type] = it;
+      const key = di+'_'+ii;
+      const isDone = !!progress[key];
+      inner += `<div class="item ${isDone?'done':''}" data-key="${key}">
+        <div class="chk">${isDone?'✓':''}</div>
+        <div class="item-body">
+          <div class="item-time">${time}</div>
+          <div class="item-label">${label}</div>
+          ${note?`<div class="item-note">${note}</div>`:''}
+        </div>
+      </div>`;
+    });
+    if(d.warn){ inner += `<div class="warn-box">${d.warn}</div>`; }
+  }
+  const cls = dir==='next' ? 'from-right' : dir==='prev' ? 'from-left' : '';
+  scroller.innerHTML = `<div class="page ${cls}">${inner}</div>`;
+  scroller.querySelectorAll('.item').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const key = el.getAttribute('data-key');
+      progress[key] = !progress[key];
+      saveProgress();
+      vib(progress[key] ? [10,30,10] : 8);
+      renderTripDay(idx);
+      renderDots();
+    });
+  });
+}
+
+function renderDots(){
+  if(mode!=='trip'){ dotsEl.innerHTML=''; return; }
+  dotsEl.innerHTML = days.map((_,i)=>`<span class="${i===idx?'on':''}"></span>`).join('');
+}
+
+function renderMode(dir){
+  document.querySelectorAll('#tabs button').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-tab')===mode);
+  });
+  if(mode==='trip'){ renderTripDay(idx, dir); renderDots(); return; }
+  dotsEl.innerHTML='';
+  scroller.scrollTop = 0;
+  const content = mode==='pack' ? packContent : mode==='budget' ? budgetContent : backupContent;
+  scroller.innerHTML = `<div class="page">${content}</div>`;
+}
+
+function resetProgress(){
+  progress = {};
+  saveProgress();
+  vib(20);
+  renderTripDay(idx);
+}
+
+document.querySelectorAll('#tabs button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    if(mode===b.getAttribute('data-tab')) return;
+    mode = b.getAttribute('data-tab');
+    vib(10);
+    renderMode();
+  });
+});
+
+let touchStartX=0, touchStartY=0;
+document.getElementById('app').addEventListener('touchstart', e=>{
+  touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
+}, {passive:true});
+document.getElementById('app').addEventListener('touchend', e=>{
+  if(mode!=='trip') return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)*1.5){
+    if(dx < 0 && idx < days.length-1){ idx++; scroller.scrollTop=0; vib(12); renderTripDay(idx,'next'); renderDots(); }
+    else if(dx > 0 && idx > 0){ idx--; scroller.scrollTop=0; vib(12); renderTripDay(idx,'prev'); renderDots(); }
+  }
+}, {passive:true});
+document.getElementById('zoneL').addEventListener('click', ()=>{
+  if(mode==='trip' && idx>0){ idx--; scroller.scrollTop=0; vib(12); renderTripDay(idx,'prev'); renderDots(); }
+});
+document.getElementById('zoneR').addEventListener('click', ()=>{
+  if(mode==='trip' && idx<days.length-1){ idx++; scroller.scrollTop=0; vib(12); renderTripDay(idx,'next'); renderDots(); }
+});
+
+renderMode();
+
+// Offline support
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+const offlineChip = document.getElementById('offlineChip');
+function updateOnlineState(){
+  if(!navigator.onLine){ offlineChip.classList.add('show'); setTimeout(()=>offlineChip.classList.remove('show'), 2500); }
+}
+window.addEventListener('offline', updateOnlineState);
+window.addEventListener('online', ()=>offlineChip.classList.remove('show'));
+if(!navigator.onLine) updateOnlineState();
+</script>
+</body>
+</html>
